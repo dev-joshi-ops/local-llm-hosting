@@ -73,7 +73,7 @@ For security, sensitive API keys and tokens are managed via environment variable
 In standalone mode, all configurations are defined in `apisix.yaml`. APISIX automatically monitors this file for changes and performs hot reloads.
 
 ### 1. Consumer Configuration
-Define authorized users in the `consumers` section:
+Define authorized users and their specific quotas in the `consumers` section. Setting rate limits at the consumer level ensures per-user isolation.
 
 ```yaml
 consumers:
@@ -81,6 +81,12 @@ consumers:
     plugins:
       key-auth:
         key: "${{CONSUMER_API_KEY}}"
+      ai-rate-limiting:
+        limit: 1000
+        time_window: 3600
+        limit_strategy: "total_tokens"
+        rejected_code: 429
+        rejected_msg: "{\"error\": \"Bro, you maxed out your token budget. Wait a bit.\"}"
 ```
 
 ### 2. Route Configuration
@@ -88,7 +94,7 @@ Configure routes to forward traffic to Ollama. The `ai-proxy` plugin with the `o
 
 ```yaml
 routes:
-  - id: "ollama-route"
+  - id: "1"
     name: "Ollama-Compatible-Gateway"
     uri: "/v1/chat/completions"
     plugins:
@@ -107,39 +113,28 @@ routes:
         path: "/dev/stdout"
 ```
 
-> [!IMPORTANT]
+> [!TIP]
 > The `file-logger` plugin combined with `ai-proxy.logging.summaries` allows you to see detailed AI metrics (token usage, model names, latency) directly in your Docker logs.
-
 
 ## Scaling with Multiple Consumers
 
-To add more consumers while following security best practices:
+To add more consumers with independent quotas:
 
-1. **Update `apisix.yaml`**: Add a new entry to the `consumers` list.
+1. **Update `apisix.yaml`**: Add a new entry to the `consumers` list with its own `ai-rate-limiting` config.
    ```yaml
    consumers:
      - username: "user-1"
        plugins:
          key-auth:
            key: "${{USER1_API_KEY}}"
-     - username: "user-2"
-       plugins:
-         key-auth:
-           key: "${{USER2_API_KEY}}"
+         ai-rate-limiting:
+           limit: 5000  # Higher tier
+           time_window: 3600
    ```
 
 2. **Update `.env`**: Add the unique keys for each user.
-   ```bash
-   USER1_API_KEY=key_for_user_1
-   USER2_API_KEY=key_for_user_2
-   ```
 
 3. **Update `docker-compose.yaml`**: Map the new variables to the APISIX service.
-   ```yaml
-   environment:
-     - USER1_API_KEY
-     - USER2_API_KEY
-   ```
 
 ## Connecting APISIX with VSCode "Continue" Extension
 
@@ -165,13 +160,10 @@ models:
       - edit
 ```
 
-> [!TIP]
-> Using the `requestOptions.headers` as shown above ensures your `apikey` is sent correctly to APISIX's `key-auth` plugin.
-
 ### 2. Benefits of this Setup
-- **Standardization**: Your tools talk to a standard OpenAI API.
+- **Per-User Quotas**: Ensure fair usage across your team by setting independent token limits.
+- **Custom Error Messages**: Provide clear feedback to users when they exceed their budget.
 - **Centralized Control**: Manage all local and remote models through a single gateway.
-- **AI-Specific Analytics**: APISIX can log token usage and model performance.
 
 ---
 *Created for secure and manageable local AI development.*

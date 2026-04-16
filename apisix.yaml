@@ -3,6 +3,12 @@ consumers:
     plugins:
       key-auth:
         key: "${{CONSUMER_API_KEY}}"
+      ai-rate-limiting:
+        limit: 1000
+        time_window: 3600
+        limit_strategy: "total_tokens"
+        rejected_code: 429
+        rejected_msg: "{\"error\": \"Bro, you maxed out your token budget. Wait a bit.\"}"
 routes:
   - id: "1"
     name: "Ollama-Compatible-Gateway"
