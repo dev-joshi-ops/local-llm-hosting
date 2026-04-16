@@ -15,7 +15,7 @@
 
 ---
 
-This repository provides a professional setup for hosting and managing Local Large Language Models (LLMs) using **Ollama** as the model execution engine and **Apache APISIX** as a high-performance cloud-native API gateway.
+This repository provides a professional setup for hosting and managing Local Large Language Models (LLMs) using **Ollama** and **Apache APISIX**.
 
 ## Project Overview
 
@@ -27,19 +27,18 @@ The goal of this project is to create a robust infrastructure for local AI deplo
 - **Scalability**: Seamlessly routing to multiple Ollama instances.
 
 > [!NOTE]
-> This project uses **APISIX Standalone Mode**, where the configuration is managed declaratively via `apisix.yaml`. This follows Infrastructure-as-Code (IaC) principles.
+> This project uses **APISIX Standalone Mode** and containerized **Ollama**. The entire stack is managed via Docker Compose following Infrastructure-as-Code (IaC) principles.
 
 ## Getting Started
 
 ### Prerequisites
 
-- [Docker](https://www.docker.com/)
-- [Docker Compose](https://docs.docker.com/compose/)
-- [Ollama](https://ollama.com/) (installed locally or running as a separate service)
+- [Docker](https://www.docker.com/) & [Docker Compose](https://docs.docker.com/compose/)
+- [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/latest/install-guide.html) (for GPU acceleration on Ubuntu/Linux)
 
 ### Environment Configuration
 
-For security, sensitive API keys and tokens are managed via environment variables and are not committed to the repository.
+For security and persistence, sensitive keys and model paths are managed via environment variables.
 
 1. **Create your environment file:**
    ```bash
@@ -47,7 +46,10 @@ For security, sensitive API keys and tokens are managed via environment variable
    ```
 
 2. **Configure your secrets:**
-   Open `.env` and fill in your actual consumer keys and internal tokens.
+   Open `.env` and set:
+   - `CONSUMER_API_KEY`: Your gateway access key.
+   - `INTERNAL_OLLAMA_TOKEN`: Token for upstream authorization.
+   - `LOCAL_OLLAMA_MODELS`: Path to your local models (e.g., `/usr/share/ollama/.ollama`).
 
 ### Initial Setup
 
@@ -57,24 +59,19 @@ For security, sensitive API keys and tokens are managed via environment variable
    cd local-llm-hosting
    ```
 
-2. **Configure Your Infrastructure:**
-   The gateway configuration is stored in `apisix.yaml`. It uses the `${{VAR}}` syntax to pull values from your `.env` file via Docker Compose.
-
-3. **Start the Infrastructure:**
+2. **Start the Stack:**
    ```bash
    docker-compose up -d
    ```
 
-4. **Verify APISIX:**
-   The gateway will be available at `http://127.0.0.1:9080`.
+3. **Verify the Stack:**
+   - APISIX: `http://localhost:9080`
+   - Ollama: `curl http://localhost:11434/api/tags`
 
 ## Declarative Configuration (IaC)
 
-In standalone mode, all configurations are defined in `apisix.yaml`. APISIX automatically monitors this file for changes and performs hot reloads.
-
 ### Model-Wise Rate Limiting
-
-This project implements model-specific token quotas at the **Route Level**. This ensures that different models have appropriate limits based on their complexity and host resource usage.
+This project implements model-specific token quotas at the route level.
 
 ```yaml
 routes:
@@ -87,54 +84,29 @@ routes:
           - name: "gemma4:26b-a4b-it-q4_K_M"
             limit: 5000
             time_window: 3600
-        rejected_msg: "{\"error\": \"Model quota exceeded.\"}"
 ```
 
 ## Advanced: Tiered Service (Premium Quotas)
 
-While this repository defaults to global model-wise limits, APISIX supports **Premium Service Tiers** using plugin precedence.
+You can grant specific users higher limits by adding the `ai-rate-limiting` plugin directly to their **Consumer** profile in `apisix.yaml`. APISIX precedence follows: **Consumer > Route**.
 
-### Implementing a Premium Tier
-To grant a specific user higher limits (overriding the defaults above), add the `ai-rate-limiting` plugin directly to their **Consumer** profile in `apisix.yaml`:
+## Connecting with VSCode "Continue" Extension
 
-```yaml
-consumers:
-  - username: "premium-user"
-    plugins:
-      key-auth:
-        key: "${{PREMIUM_KEY}}"
-      ai-rate-limiting:
-        limit: 50000        # Much higher limit for high-value users
-        time_window: 3600
-```
-
-> [!TIP]
-> APISIX precedence follows the order: **Consumer > Route > Global**. Any plugin defined on the Consumer will completely replace the same plugin's settings from the Route for that specific user.
-
-## Scaling and Management
-
-### Adding Models and Rules
-Update the `routes` section in `apisix.yaml` to add new models or endpoints. Standardize on the `ai-proxy` plugin for OpenAI compatibility.
+Modify your `config.json` in VSCode:
 
 ```yaml
-routes:
-  - id: "1"
-    name: "Ollama-Compatible-Gateway"
-    uri: "/v1/chat/completions"
-    plugins:
-      ai-proxy:
-        provider: "openai-compatible"
-        auth:
-          header:
-            Authorization: "Bearer ${{INTERNAL_OLLAMA_TOKEN}}"
-        override:
-          endpoint: "http://<OLLAMA_IP>:11434/v1/chat/completions"
-      file-logger:
-        path: "/dev/stdout"
+name: Local Config
+version: 1.0.0
+schema: v1
+models:
+  - name: Gemma 4 26B (Reasoning)
+    provider: openai
+    model: gemma4:26b-a4b-it-q4_K_M
+    apiBase: http://<SERVER_IP>:9080/v1/
+    requestOptions:
+      headers:
+        apikey: "<CONSUMER_API_KEY>"
 ```
-
-> [!TIP]
-> The `file-logger` plugin combined with `ai-proxy.logging.summaries` allows you to see detailed AI metrics (token usage, model names, latency) directly in your Docker logs.
 
 ---
 *Created for secure and manageable local AI development.*
