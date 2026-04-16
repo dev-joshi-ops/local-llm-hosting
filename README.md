@@ -1,5 +1,20 @@
 # Local LLM Hosting with Ollama & Apache APISIX
 
+<div align="center">
+
+![Local LLM Infrastructure](https://img.shields.io/badge/Infrastructure-Local--LLM-blue?style=for-the-badge&logo=ai)
+![Ollama](https://img.shields.io/badge/Model--Runner-Ollama-white?style=for-the-badge&logo=ollama)
+![APISIX](https://img.shields.io/badge/API--Gateway-Apache--APISIX-red?style=for-the-badge&logo=apache-apisix)
+![Docker](https://img.shields.io/badge/Container-Docker-blue?style=for-the-badge&logo=docker)
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](http://makeapullrequest.com)
+[![GitHub Stars](https://img.shields.io/github/stars/dev-joshi-ops/local-llm-hosting.svg?style=social)](https://github.com/dev-joshi-ops/local-llm-hosting/stargazers)
+
+</div>
+
+---
+
 This repository provides a professional setup for hosting and managing Local Large Language Models (LLMs) using **Ollama** as the model execution engine and **Apache APISIX** as a high-performance cloud-native API gateway.
 
 ## Project Overview
