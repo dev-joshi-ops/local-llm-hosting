@@ -7,8 +7,6 @@ services:
     environment:
       - CONSUMER_API_KEY
       - INTERNAL_OLLAMA_TOKEN
-    ports:
-      - "9080:9080"
     volumes:
       - ./config.yaml:/usr/local/apisix/conf/config.yaml:ro
       - ./apisix.yaml:/usr/local/apisix/conf/apisix.yaml:ro
