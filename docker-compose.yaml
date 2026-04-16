@@ -4,6 +4,9 @@ services:
   apisix:
     image: apache/apisix:latest
     container_name: apisix-gateway
+    environment:
+      - CONSUMER_API_KEY
+      - INTERNAL_OLLAMA_TOKEN
     ports:
       - "9080:9080"
     volumes:

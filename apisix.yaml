@@ -2,8 +2,7 @@ consumers:
   - username: "dev-user"
     plugins:
       key-auth:
-        key: "[CONSUMER_API_KEY]"
-
+        key: "${{CONSUMER_API_KEY}}"
 routes:
   - id: "unique_route_identifier"
     name: "Ollama-Compatible-Gateway"
@@ -15,7 +14,7 @@ routes:
         provider: "openai-compatible"
         auth:
           header:
-            Authorization: "Bearer <INTERNAL_OLLAMA_TOKEN>"
+            Authorization: "Bearer ${{INTERNAL_OLLAMA_TOKEN}}"
         override:
           endpoint: "http://127.0.0.1:11434/v1/chat/completions"
         logging:
