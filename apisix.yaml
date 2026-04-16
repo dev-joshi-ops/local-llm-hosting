@@ -4,7 +4,7 @@ consumers:
       key-auth:
         key: "${{CONSUMER_API_KEY}}"
 routes:
-  - id: "unique_route_identifier"
+  - id: "1"
     name: "Ollama-Compatible-Gateway"
     uri: "/v1/chat/completions"
     plugins:
@@ -19,5 +19,7 @@ routes:
           endpoint: "http://127.0.0.1:11434/v1/chat/completions"
         logging:
           summaries: true
+      file-logger:
+        path: "/dev/stdout"
 
 #END

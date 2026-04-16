@@ -103,7 +103,13 @@ routes:
           endpoint: "http://<OLLAMA_IP>:11434/v1/chat/completions"
         logging:
           summaries: true
+      file-logger:
+        path: "/dev/stdout"
 ```
+
+> [!IMPORTANT]
+> The `file-logger` plugin combined with `ai-proxy.logging.summaries` allows you to see detailed AI metrics (token usage, model names, latency) directly in your Docker logs.
+
 
 ## Scaling with Multiple Consumers
 
