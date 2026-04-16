@@ -1,18 +1,12 @@
-version: "3"
-services:
-  etcd:
-    image: bitnamilegacy/etcd:3.4.9
-    network_mode: host
-    environment:
-      - ALLOW_NONE_AUTHENTICATION=yes
-      - ETCD_ENABLE_V2=true
-      - ETCD_ADVERTISE_CLIENT_URLS=http://127.0.0.1:2379
-      - ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:2379
+version: '3.8'
 
+services:
   apisix:
     image: apache/apisix:latest
-    network_mode: host
-    depends_on:
-      - etcd
+    container_name: apisix-gateway
+    ports:
+      - "9080:9080"
     volumes:
       - ./config.yaml:/usr/local/apisix/conf/config.yaml:ro
+      - ./apisix.yaml:/usr/local/apisix/conf/apisix.yaml:ro
+    network_mode: host

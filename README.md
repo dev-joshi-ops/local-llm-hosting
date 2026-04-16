@@ -27,7 +27,7 @@ The goal of this project is to create a robust infrastructure for local AI deplo
 - **Scalability**: Seamlessly routing to multiple Ollama instances.
 
 > [!NOTE]
-> Currently, the project is focused on the initial configuration of the APISIX gateway and its supporting metadata store (etcd).
+> This project uses **APISIX Standalone Mode**, where the configuration is managed declaratively via `apisix.yaml`. This follows Infrastructure-as-Code (IaC) principles, removing the need for an external database like etcd.
 
 ## Getting Started
 
@@ -37,19 +37,6 @@ The goal of this project is to create a robust infrastructure for local AI deplo
 - [Docker Compose](https://docs.docker.com/compose/)
 - [Ollama](https://ollama.com/) (installed locally or running as a separate service)
 
-### Security Configuration
-
-Before starting the services, you must generate a secure admin key for APISIX:
-
-1. **Generate a secure key:**
-   Run the following command to generate a 32-character hex key:
-   ```bash
-   openssl rand -hex 32
-   ```
-
-2. **Update Configuration:**
-   Open `config.yaml` and replace `<GENERATED_ADMIN_KEY>` with the output from the command above.
-
 ### Initial Setup
 
 1. **Clone the repository:**
@@ -58,90 +45,61 @@ Before starting the services, you must generate a secure admin key for APISIX:
    cd local-llm-hosting
    ```
 
-2. **Start the Infrastructure:**
-   Use the provided Docker Compose file to spin up APISIX and etcd.
+2. **Configure Your Infrastructure:**
+   The gateway configuration is stored in `apisix.yaml`. Ensure you have defined your routes and consumers there.
+
+3. **Start the Infrastructure:**
+   Use the provided Docker Compose file to spin up APISIX.
    ```bash
    docker-compose up -d
    ```
 
-3. **Verify APISIX:**
+4. **Verify APISIX:**
    The gateway will be available at `http://127.0.0.1:9080` (default port).
 
-## User Management (Consumers)
+## Declarative Configuration (IaC)
 
-To securely access your LLM through APISIX, you should create a **Consumer**. This allows you to track usage and restrict access to authorized users.
+In standalone mode, all configurations are defined in `apisix.yaml`. APISIX automatically monitors this file for changes and performs hot reloads.
 
-### Create a Consumer with Key Authentication
+### 1. Consumer Configuration
+Define authorized users and their API keys in the `consumers` section:
 
-Run the following command to create a consumer named `dev-user`:
-
-```bash
-curl http://127.0.0.1:9180/apisix/admin/consumers \
-  -H "X-API-KEY: <ADMIN_KEY>" \
-  -X PUT -d '
-{
-  "username": "<USERNAME>",
-  "plugins": {
-    "key-auth": {
-      "key": "<CONSUMER_API_KEY>"
-    }
-  }
-}'
+```yaml
+consumers:
+  - username: "<USERNAME>"
+    plugins:
+      key-auth:
+        key: "<CONSUMER_API_KEY>"
 ```
 
-> [!TIP]
-> Replace `<ADMIN_KEY>` with the key you generated in the Security Configuration step, and `<CONSUMER_API_KEY>` with a unique key for the user.
+### 2. Route Configuration
+Configure routes to forward traffic to Ollama in the `routes` section. Using the `ai-proxy` plugin with the `openai-compatible` provider ensures compatibility with standard AI tools.
+
+```yaml
+routes:
+  - id: "ollama-route"
+    name: "Ollama-Compatible-Gateway"
+    uri: "/v1/chat/completions"
+    plugins:
+      key-auth: 
+        header: "apikey"
+      ai-proxy:
+        provider: "openai-compatible"
+        auth:
+          header:
+            Authorization: "Bearer <INTERNAL_OLLAMA_TOKEN>"
+        override:
+          endpoint: "http://<OLLAMA_IP>:11434/v1/chat/completions"
+        logging:
+          summaries: true
+```
 
 ## Connecting APISIX with VSCode "Continue" Extension
 
-The [Continue](https://www.continue.dev/) extension for VSCode allows you to use local LLMs as your coding assistant. To route requests through APISIX (for logging or rate limiting), follow these steps:
+The [Continue](https://www.continue.dev/) extension for VSCode allows you to use local LLMs as your coding assistant. To route requests through APISIX, follow these steps:
 
-### 1. Configure the APISIX Route
-
-To enable advanced features like AI-specific logging and standardized API endpoints, configure a route using the `ai-proxy` plugin. 
-
-**Why use `openai-compatible`?**
-Most modern AI extensions (including Continue) expect the OpenAI API format (`/v1/chat/completions`). By using the `openai-compatible` provider in APISIX:
-- **Standardization**: You create a unified interface regardless of the model runner backend.
-- **Portability**: You can switch from Ollama to other providers (like OpenAI or Anthropic) without changing your client configuration.
-- **Enhanced Observability**: The `ai-proxy` plugin provides specialized logging for token usage and AI-specific metadata.
-
-Run this command to create the route:
-
-```bash
-curl -i -X PUT "http://127.0.0.1:9180/apisix/admin/routes/1" \
--H "X-API-KEY: <ADMIN_KEY>" \
--d '{
-    "uri": "/v1/chat/completions",
-    "name": "Ollama-Compatible-Gateway",
-    "plugins": {
-        "key-auth": {
-            "header": "apikey"
-        },
-        "ai-proxy": {
-            "provider": "openai-compatible",
-            "auth": {
-                "header": {
-                    "Authorization": "Bearer <INTERNAL_OLLAMA_TOKEN>"
-                }
-            },
-            "override": {
-                "endpoint": "http://127.0.0.1:11434/v1/chat/completions"
-            },
-            "logging": {
-                "summaries": true
-            }
-        }
-    }
-}'
-```
-
-### 2. Update Continue configuration
+### 1. Update Continue configuration
 Modify your `config.json` in VSCode (usually accessed via the gear icon in the Continue sidebar).
-
-1. Open the Continue settings.
-2. Locate the `models` array.
-3. Add or update your model configuration. Here is a comprehensive example supporting models routed through the APISIX gateway:
 
 ```yaml
 name: Local Config
@@ -175,10 +133,10 @@ models:
 > [!TIP]
 > Using the `requestOptions.headers` as shown above ensures your `apikey` is sent correctly to APISIX's `key-auth` plugin.
 
-### 3. Benefits of this Setup
-- **Centralized Control**: Manage all LLM traffic through a single high-performance gateway.
-- **Role Specialization**: Assign specific models to tasks like code completion (`autocomplete`) or reasoning.
-- **Enhanced Observability**: Track token usage and request latency via the APISIX `ai-proxy` plugin.
+### 2. Benefits of this Setup
+- **Standardization**: Your tools talk to a standard OpenAI API, making it easy to swap backends.
+- **Centralized Control**: Manage all local and remote models through a single gateway.
+- **AI-Specific Analytics**: APISIX can log token usage and model performance via the `ai-proxy` plugin.
 
 ---
 *Created for secure and manageable local AI development.*
