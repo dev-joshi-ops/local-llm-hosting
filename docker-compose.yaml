@@ -1,0 +1,18 @@
+version: "3"
+services:
+  etcd:
+    image: bitnamilegacy/etcd:3.4.9
+    network_mode: host
+    environment:
+      - ALLOW_NONE_AUTHENTICATION=yes
+      - ETCD_ENABLE_V2=true
+      - ETCD_ADVERTISE_CLIENT_URLS=http://127.0.0.1:2379
+      - ETCD_LISTEN_CLIENT_URLS=http://0.0.0.0:2379
+
+  apisix:
+    image: apache/apisix:latest
+    network_mode: host
+    depends_on:
+      - etcd
+    volumes:
+      - ./config.yaml:/usr/local/apisix/conf/config.yaml:ro

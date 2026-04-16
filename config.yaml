@@ -1,0 +1,11 @@
+deployment:
+  admin:
+    allow_admin:
+      - 0.0.0.0/0
+    admin_key:
+      - name: admin
+        key: <GENERATED_ADMIN_KEY>
+        role: admin
+  etcd:
+    host:
+      - "http://127.0.0.1:2379"
