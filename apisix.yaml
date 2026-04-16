@@ -3,12 +3,6 @@ consumers:
     plugins:
       key-auth:
         key: "${{CONSUMER_API_KEY}}"
-      ai-rate-limiting:
-        limit: 1000
-        time_window: 3600
-        limit_strategy: "total_tokens"
-        rejected_code: 429
-        rejected_msg: "{\"error\": \"Bro, you maxed out your token budget. Wait a bit.\"}"
 routes:
   - id: "1"
     name: "Ollama-Compatible-Gateway"
@@ -27,5 +21,16 @@ routes:
           summaries: true
       file-logger:
         path: "/dev/stdout"
+      ai-rate-limiting:
+        instances:
+          - name: "gemma4:e4b"
+            limit: 10000
+            time_window: 3600
+          - name: "gemma4:26b-a4b-it-q4_K_M"
+            limit: 5000
+            time_window: 3600
+        limit_strategy: "total_tokens"
+        rejected_code: 429
+        rejected_msg: "{\"error\": \"Model quota exceeded. Check model-specific limits in documentation.\"}"
 
 #END

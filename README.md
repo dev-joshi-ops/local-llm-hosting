@@ -22,7 +22,7 @@ This repository provides a professional setup for hosting and managing Local Lar
 The goal of this project is to create a robust infrastructure for local AI deployments. By using Apache APISIX as a proxy for Ollama, you gain enterprise-grade features such as:
 
 - **Security**: Authentication and authorization layers.
-- **Traffic Management**: Rate limiting and request throttling.
+- **Traffic Management**: Model-aware rate limiting and request throttling.
 - **Observability**: Metrics, logging, and tracing for AI requests.
 - **Scalability**: Seamlessly routing to multiple Ollama instances.
 
@@ -72,25 +72,49 @@ For security, sensitive API keys and tokens are managed via environment variable
 
 In standalone mode, all configurations are defined in `apisix.yaml`. APISIX automatically monitors this file for changes and performs hot reloads.
 
-### 1. Consumer Configuration
-Define authorized users and their specific quotas in the `consumers` section. Setting rate limits at the consumer level ensures per-user isolation.
+### Model-Wise Rate Limiting
+
+This project implements model-specific token quotas at the **Route Level**. This ensures that different models have appropriate limits based on their complexity and host resource usage.
+
+```yaml
+routes:
+  - plugins:
+      ai-rate-limiting:
+        instances:
+          - name: "gemma4:e4b"
+            limit: 10000
+            time_window: 3600
+          - name: "gemma4:26b-a4b-it-q4_K_M"
+            limit: 5000
+            time_window: 3600
+        rejected_msg: "{\"error\": \"Model quota exceeded.\"}"
+```
+
+## Advanced: Tiered Service (Premium Quotas)
+
+While this repository defaults to global model-wise limits, APISIX supports **Premium Service Tiers** using plugin precedence.
+
+### Implementing a Premium Tier
+To grant a specific user higher limits (overriding the defaults above), add the `ai-rate-limiting` plugin directly to their **Consumer** profile in `apisix.yaml`:
 
 ```yaml
 consumers:
-  - username: "<USERNAME>"
+  - username: "premium-user"
     plugins:
       key-auth:
-        key: "${{CONSUMER_API_KEY}}"
+        key: "${{PREMIUM_KEY}}"
       ai-rate-limiting:
-        limit: 1000
+        limit: 50000        # Much higher limit for high-value users
         time_window: 3600
-        limit_strategy: "total_tokens"
-        rejected_code: 429
-        rejected_msg: "{\"error\": \"Bro, you maxed out your token budget. Wait a bit.\"}"
 ```
 
-### 2. Route Configuration
-Configure routes to forward traffic to Ollama. The `ai-proxy` plugin with the `openai-compatible` provider ensures compatibility with standard AI tools.
+> [!TIP]
+> APISIX precedence follows the order: **Consumer > Route > Global**. Any plugin defined on the Consumer will completely replace the same plugin's settings from the Route for that specific user.
+
+## Scaling and Management
+
+### Adding Models and Rules
+Update the `routes` section in `apisix.yaml` to add new models or endpoints. Standardize on the `ai-proxy` plugin for OpenAI compatibility.
 
 ```yaml
 routes:
@@ -98,8 +122,6 @@ routes:
     name: "Ollama-Compatible-Gateway"
     uri: "/v1/chat/completions"
     plugins:
-      key-auth: 
-        header: "apikey"
       ai-proxy:
         provider: "openai-compatible"
         auth:
@@ -107,63 +129,12 @@ routes:
             Authorization: "Bearer ${{INTERNAL_OLLAMA_TOKEN}}"
         override:
           endpoint: "http://<OLLAMA_IP>:11434/v1/chat/completions"
-        logging:
-          summaries: true
       file-logger:
         path: "/dev/stdout"
 ```
 
 > [!TIP]
 > The `file-logger` plugin combined with `ai-proxy.logging.summaries` allows you to see detailed AI metrics (token usage, model names, latency) directly in your Docker logs.
-
-## Scaling with Multiple Consumers
-
-To add more consumers with independent quotas:
-
-1. **Update `apisix.yaml`**: Add a new entry to the `consumers` list with its own `ai-rate-limiting` config.
-   ```yaml
-   consumers:
-     - username: "user-1"
-       plugins:
-         key-auth:
-           key: "${{USER1_API_KEY}}"
-         ai-rate-limiting:
-           limit: 5000  # Higher tier
-           time_window: 3600
-   ```
-
-2. **Update `.env`**: Add the unique keys for each user.
-
-3. **Update `docker-compose.yaml`**: Map the new variables to the APISIX service.
-
-## Connecting APISIX with VSCode "Continue" Extension
-
-The [Continue](https://www.continue.dev/) extension for VSCode allows you to use local LLMs as your coding assistant. To route requests through APISIX, follow these steps:
-
-### 1. Update Continue configuration
-Modify your `config.json` in VSCode:
-
-```yaml
-name: Local Config
-version: 1.0.0
-schema: v1
-models:
-  - name: Gemma 4 26B (Reasoning)
-    provider: openai
-    model: gemma4:26b-a4b-it-q4_K_M
-    apiBase: http://<APISIX_IP>:9080/v1/
-    requestOptions:
-      headers:
-        apikey: "<CONSUMER_API_KEY>"
-    roles:
-      - chat
-      - edit
-```
-
-### 2. Benefits of this Setup
-- **Per-User Quotas**: Ensure fair usage across your team by setting independent token limits.
-- **Custom Error Messages**: Provide clear feedback to users when they exceed their budget.
-- **Centralized Control**: Manage all local and remote models through a single gateway.
 
 ---
 *Created for secure and manageable local AI development.*
