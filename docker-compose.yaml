@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   apisix:
-    image: apache/apisix:latest
+    image: apache/apisix:3.16.0
     container_name: apisix-gateway
     environment:
       - CONSUMER_API_KEY
@@ -16,7 +16,7 @@ services:
     restart: always
 
   ollama:
-    image: ollama/ollama:0.1.41
+    image: ollama/ollama:0.6.2
     container_name: ollama
     volumes:
       - ${LOCAL_OLLAMA_MODELS:-/usr/share/ollama/.ollama}:/root/.ollama
