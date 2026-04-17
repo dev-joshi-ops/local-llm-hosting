@@ -11,6 +11,7 @@ routes:
       key-auth: 
         header: "apikey"
       ai-proxy-multi:
+        timeout: 300000
         allow_client_model_preference: true
         instances:
           - name: "gemma4:e4b"
