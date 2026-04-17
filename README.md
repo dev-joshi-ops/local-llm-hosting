@@ -22,12 +22,13 @@ This repository provides a professional setup for hosting and managing Local Lar
 The goal of this project is to create a robust infrastructure for local AI deployments. By using Apache APISIX as a proxy for Ollama, you gain enterprise-grade features such as:
 
 - **Security**: Authentication and authorization layers.
-- **Traffic Management**: Model-aware rate limiting and request throttling.
+- **Traffic Management**: Model-aware rate limiting (10M tokens/hr) and 5-minute response timeouts.
+- **Performance**: High-speed inference using NVIDIA GPU acceleration.
 - **Observability**: Metrics, logging, and tracing for AI requests.
 - **Scalability**: Seamlessly routing to multiple Ollama instances.
 
 > [!NOTE]
-> This project uses **APISIX Standalone Mode** and containerized **Ollama**. The entire stack is managed via Docker Compose following Infrastructure-as-Code (IaC) principles.
+> This project uses **APISIX 3.16.0** (Standalone Mode) and **Ollama 0.21.0**. The entire stack is managed via Docker Compose following Infrastructure-as-Code (IaC) principles.
 
 ## Getting Started
 
@@ -72,13 +73,14 @@ For security and persistence, sensitive keys and model paths are managed via env
 ## Declarative Configuration (IaC)
 
 ### Model-Wise Rate Limiting
-This project implements model-specific token quotas using the `ai-proxy-multi` and `ai-rate-limiting` plugins. This ensures that different models have appropriate limits based on their complexity.
+This project implements high-capacity token quotas (10M tokens) using the `ai-proxy-multi` and `ai-rate-limiting` plugins. This ensures that different models have appropriate limits based on their complexity.
 
 ```yaml
 routes:
   - uri: "/v1/*"
     plugins:
       ai-proxy-multi:
+        timeout: 300000          # 5-minute timeout for reasoning models
         instances:
           - name: "gemma4:e4b"
             weight: 1
@@ -91,9 +93,9 @@ routes:
       ai-rate-limiting:
         instances:
           - name: "gemma4:e4b"
-            limit: 10000
+            limit: 10000000      # 10M tokens/hr
           - name: "gemma4:26b-a4b-it-q4_K_M"
-            limit: 5000
+            limit: 10000000
 ```
 
 ## Advanced: Implementing a Premium Tier
@@ -106,9 +108,9 @@ consumers:
       ai-rate-limiting:
         instances:
           - name: "gemma4:e4b"
-            limit: 50000
+            limit: 50000000      # 50M tokens for premium tiers
           - name: "gemma4:26b-a4b-it-q4_K_M"
-            limit: 20000
+            limit: 20000000
 ```
 
 ## Connecting with VSCode "Continue" Extension
