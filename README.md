@@ -78,7 +78,7 @@ This project implements model-specific token quotas using the `ai-proxy-multi` a
 routes:
   - plugins:
       ai-proxy-multi:
-        backends:
+        instances:
           - name: "gemma-e4b"
             override:
               model: "gemma4:e4b"

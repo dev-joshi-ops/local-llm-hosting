@@ -12,7 +12,7 @@ routes:
         header: "apikey"
       ai-proxy-multi:
         allow_client_model_preference: true
-        backends:
+        instances:
           - name: "gemma-e4b"
             provider: "openai-compatible"
             auth:
