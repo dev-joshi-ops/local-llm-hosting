@@ -76,25 +76,26 @@ This project implements model-specific token quotas using the `ai-proxy-multi` a
 
 ```yaml
 routes:
-  - plugins:
+  - uri: "/v1/*"
+    plugins:
       ai-proxy-multi:
         instances:
-          - name: "gemma-e4b"
+          - name: "gemma4:e4b"
             override:
               model: "gemma4:e4b"
-          - name: "gemma-26b"
+          - name: "gemma4:26b-a4b-it-q4_K_M"
             override:
               model: "gemma4:26b-a4b-it-q4_K_M"
       ai-rate-limiting:
         instances:
-          - name: "gemma-e4b"
+          - name: "gemma4:e4b"
             limit: 10000
-          - name: "gemma-26b"
+          - name: "gemma4:26b-a4b-it-q4_K_M"
             limit: 5000
 ```
 
 ## Advanced: Implementing a Premium Tier
-To grant a specific user higher limits (overriding the defaults above), add the `ai-rate-limiting` plugin directly to their **Consumer** profile in `apisix.yaml` using the matching instance names from your proxy configuration:
+To grant a specific user higher limits (overriding the defaults above), add the `ai-rate-limiting` plugin directly to their **Consumer** profile in `apisix.yaml` using the matching instance names:
 
 ```yaml
 consumers:
@@ -102,9 +103,9 @@ consumers:
     plugins:
       ai-rate-limiting:
         instances:
-          - name: "gemma-e4b"
-            limit: 50000        # Much higher limit for high-value users
-          - name: "gemma-26b"
+          - name: "gemma4:e4b"
+            limit: 50000
+          - name: "gemma4:26b-a4b-it-q4_K_M"
             limit: 20000
 ```
 
