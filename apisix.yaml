@@ -10,23 +10,33 @@ routes:
     plugins:
       key-auth: 
         header: "apikey"
-      ai-proxy:
-        provider: "openai-compatible"
-        auth:
-          header:
-            Authorization: "Bearer ${{INTERNAL_OLLAMA_TOKEN}}"
-        override:
-          endpoint: "${{OLLAMA_ENDPOINT}}"
-        logging:
-          summaries: true
+      ai-proxy-multi:
+        allow_client_model_preference: true
+        backends:
+          - name: "gemma-e4b"
+            provider: "openai-compatible"
+            auth:
+              header:
+                Authorization: "Bearer ${{INTERNAL_OLLAMA_TOKEN}}"
+            override:
+              endpoint: "${{OLLAMA_ENDPOINT}}"
+              model: "gemma4:e4b"
+          - name: "gemma-26b"
+            provider: "openai-compatible"
+            auth:
+              header:
+                Authorization: "Bearer ${{INTERNAL_OLLAMA_TOKEN}}"
+            override:
+              endpoint: "${{OLLAMA_ENDPOINT}}"
+              model: "gemma4:26b-a4b-it-q4_K_M"
       file-logger:
         path: "/dev/stdout"
       ai-rate-limiting:
         instances:
-          - name: "gemma4:e4b"
+          - name: "gemma-e4b"
             limit: 10000
             time_window: 3600
-          - name: "gemma4:26b-a4b-it-q4_K_M"
+          - name: "gemma-26b"
             limit: 5000
             time_window: 3600
         limit_strategy: "total_tokens"

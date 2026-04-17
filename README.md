@@ -72,24 +72,41 @@ For security and persistence, sensitive keys and model paths are managed via env
 ## Declarative Configuration (IaC)
 
 ### Model-Wise Rate Limiting
-This project implements model-specific token quotas at the route level.
+This project implements model-specific token quotas using the `ai-proxy-multi` and `ai-rate-limiting` plugins. This ensures that different models have appropriate limits based on their complexity.
 
 ```yaml
 routes:
   - plugins:
+      ai-proxy-multi:
+        backends:
+          - name: "gemma-e4b"
+            override:
+              model: "gemma4:e4b"
+          - name: "gemma-26b"
+            override:
+              model: "gemma4:26b-a4b-it-q4_K_M"
       ai-rate-limiting:
         instances:
-          - name: "gemma4:e4b"
+          - name: "gemma-e4b"
             limit: 10000
-            time_window: 3600
-          - name: "gemma4:26b-a4b-it-q4_K_M"
+          - name: "gemma-26b"
             limit: 5000
-            time_window: 3600
 ```
 
-## Advanced: Tiered Service (Premium Quotas)
+## Advanced: Implementing a Premium Tier
+To grant a specific user higher limits (overriding the defaults above), add the `ai-rate-limiting` plugin directly to their **Consumer** profile in `apisix.yaml` using the matching instance names from your proxy configuration:
 
-You can grant specific users higher limits by adding the `ai-rate-limiting` plugin directly to their **Consumer** profile in `apisix.yaml`. APISIX precedence follows: **Consumer > Route**.
+```yaml
+consumers:
+  - username: "premium-user"
+    plugins:
+      ai-rate-limiting:
+        instances:
+          - name: "gemma-e4b"
+            limit: 50000        # Much higher limit for high-value users
+          - name: "gemma-26b"
+            limit: 20000
+```
 
 ## Connecting with VSCode "Continue" Extension
 
