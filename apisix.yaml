@@ -16,7 +16,7 @@ routes:
           header:
             Authorization: "Bearer ${{INTERNAL_OLLAMA_TOKEN}}"
         override:
-          endpoint: "http://127.0.0.1:11434/v1/chat/completions"
+          endpoint: "${{OLLAMA_ENDPOINT}}"
         logging:
           summaries: true
       file-logger:

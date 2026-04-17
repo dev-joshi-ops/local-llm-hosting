@@ -10,7 +10,8 @@ services:
     volumes:
       - ./config.yaml:/usr/local/apisix/conf/config.yaml:ro
       - ./apisix.yaml:/usr/local/apisix/conf/apisix.yaml:ro
-    network_mode: host
+    ports:
+      - "9080:9080"
     restart: always
 
   ollama:
