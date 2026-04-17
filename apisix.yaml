@@ -15,6 +15,7 @@ routes:
         instances:
           - name: "gemma4:e4b"
             provider: "openai-compatible"
+            weight: 1
             auth:
               header:
                 Authorization: "Bearer ${{INTERNAL_OLLAMA_TOKEN}}"
@@ -23,6 +24,7 @@ routes:
               model: "gemma4:e4b"
           - name: "gemma4:26b-a4b-it-q4_K_M"
             provider: "openai-compatible"
+            weight: 1
             auth:
               header:
                 Authorization: "Bearer ${{INTERNAL_OLLAMA_TOKEN}}"

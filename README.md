@@ -81,9 +81,11 @@ routes:
       ai-proxy-multi:
         instances:
           - name: "gemma4:e4b"
+            weight: 1
             override:
               model: "gemma4:e4b"
           - name: "gemma4:26b-a4b-it-q4_K_M"
+            weight: 1
             override:
               model: "gemma4:26b-a4b-it-q4_K_M"
       ai-rate-limiting:
