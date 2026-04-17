@@ -7,6 +7,7 @@ services:
     environment:
       - CONSUMER_API_KEY
       - INTERNAL_OLLAMA_TOKEN
+      - OLLAMA_ENDPOINT
     volumes:
       - ./config.yaml:/usr/local/apisix/conf/config.yaml:ro
       - ./apisix.yaml:/usr/local/apisix/conf/apisix.yaml:ro

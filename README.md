@@ -49,6 +49,7 @@ For security and persistence, sensitive keys and model paths are managed via env
    Open `.env` and set:
    - `CONSUMER_API_KEY`: Your gateway access key.
    - `INTERNAL_OLLAMA_TOKEN`: Token for upstream authorization.
+   - `OLLAMA_ENDPOINT`: The internal Docker endpoint for Ollama (e.g., `http://ollama:11434/v1/chat/completions`).
    - `LOCAL_OLLAMA_MODELS`: Path to your local models (e.g., `/usr/share/ollama/.ollama`).
 
 ### Initial Setup
