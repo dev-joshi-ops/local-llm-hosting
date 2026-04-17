@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   apisix:
-    image: apache/apisix:3.16.0
+    image: apache/apisix:3.16.0-ubuntu
     container_name: apisix-gateway
     environment:
       - CONSUMER_API_KEY
