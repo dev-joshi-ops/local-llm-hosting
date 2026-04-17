@@ -36,10 +36,10 @@ routes:
       ai-rate-limiting:
         instances:
           - name: "gemma4:e4b"
-            limit: 10000
+            limit: 100000
             time_window: 3600
           - name: "gemma4:26b-a4b-it-q4_K_M"
-            limit: 5000
+            limit: 100000
             time_window: 3600
         limit_strategy: "total_tokens"
         rejected_code: 429
