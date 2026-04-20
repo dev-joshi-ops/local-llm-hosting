@@ -14,9 +14,10 @@ routes:
             return function(conf, ctx)
               local auth_header = core.request.header(ctx, "Authorization")
               if auth_header then
-                -- Remove "Bearer " (case-insensitive) from the start of the string
-                local token = ngx.re.gsub(auth_header, "^[Bb][Ee][Aa][Rr][Ee][Rr]\\s+", "", "jo")
-                if token then
+                -- ngx.re.gsub returns (result_string, count, err)
+                -- We only need the first return value: the modified string
+                local token = ngx.re.gsub(auth_header, "(?i)^bearer\\s+", "", "jo")
+                if token and token ~= auth_header then
                   core.request.set_header(ctx, "Authorization", token)
                 end
               end
