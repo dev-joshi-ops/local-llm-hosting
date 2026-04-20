@@ -14,7 +14,8 @@ routes:
             return function(conf, ctx)
               local auth_header = core.request.header(ctx, "Authorization")
               if auth_header then
-                local _, _, token = string.find(auth_header, "Bearer%s+(.+)")
+                -- Case-insensitive match for "Bearer " followed by the token
+                local _, _, token = string.find(auth_header, "[Bb][Ee][Aa][Rr][Ee][Rr]%s+(.+)")
                 if token then
                   core.request.set_header(ctx, "Authorization", token)
                 end
