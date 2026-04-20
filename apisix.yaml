@@ -3,23 +3,15 @@ consumers:
     plugins:
       key-auth:
         key: "${{CONSUMER_API_KEY}}"
+  - username: "dev-user-bearer"
+    plugins:
+      key-auth:
+        key: "Bearer ${{CONSUMER_API_KEY}}"
 routes:
   - id: "1"
     name: "Ollama-Compatible-Gateway"
     uri: "/v1/*"
     plugins:
-      serverless-pre-function:
-        functions:
-          - |
-            return function(conf, ctx)
-              local auth_header = core.request.header(ctx, "Authorization")
-              if auth_header then
-                local token = ngx.re.gsub(auth_header, "(?i)^bearer\s+", "", "jo")
-                if token and token ~= auth_header then
-                  core.request.set_header(ctx, "Authorization", token)
-                end
-              end
-            end
       key-auth: 
         header: "Authorization" # Standard OpenAI compatibility
       ai-proxy-multi:
