@@ -8,8 +8,20 @@ routes:
     name: "Ollama-Compatible-Gateway"
     uri: "/v1/*"
     plugins:
+      serverless-pre-function:
+        functions:
+          - |
+            return function(conf, ctx)
+              local auth_header = core.request.header(ctx, "Authorization")
+              if auth_header then
+                local _, _, token = string.find(auth_header, "Bearer%s+(.+)")
+                if token then
+                  core.request.set_header(ctx, "Authorization", token)
+                end
+              end
+            end
       key-auth: 
-        header: "apikey"
+        header: "Authorization" # Standard OpenAI compatibility
       ai-proxy-multi:
         timeout: 300000
         allow_client_model_preference: true

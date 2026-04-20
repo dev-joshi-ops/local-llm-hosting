@@ -125,11 +125,26 @@ models:
   - name: Gemma 4 26B (Reasoning)
     provider: openai
     model: gemma4:26b-a4b-it-q4_K_M
+    apiKey: "<CONSUMER_API_KEY>"
     apiBase: http://<SERVER_IP>:9080/v1/
-    requestOptions:
-      headers:
-        apikey: "<CONSUMER_API_KEY>"
-```
+
+## Connecting with Open WebUI (External)
+
+If you are running Open WebUI (e.g., via their standalone Docker image or hosted), follow these steps to connect:
+
+1.  **Open Settings** in Open WebUI.
+2.  **Navigate to Connections** > **OpenAI API**.
+3.  **Configure the following:**
+    *   **OpenAI Base URL**: `http://<YOUR_SERVER_IP>:9080/v1`
+    *   **OpenAI API Key**: `${CONSUMER_API_KEY}` (The value defined in your `.env`)
+4.  **Important Note on Authentication**: 
+    The gateway is configured to expect the key directly in the `Authorization` header. If your client sends `Bearer <key>`, ensure you have configured APISIX to handle the prefix or simply provide the key in the field.
+
+### Why use the Gateway instead of direct Ollama?
+Connecting through the gateway (`port 9080`) instead of direct Ollama (`port 11434`) gives you:
+- **Token Rate Limiting**: Prevents any single user/session from exhausting your GPU.
+- **Audit Logs**: See all requests passing through APISIX in the Docker logs.
+- **Unified Endpoint**: Manage multiple models through a single API base.
 
 ---
 *Created for secure and manageable local AI development.*
