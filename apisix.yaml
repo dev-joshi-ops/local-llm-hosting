@@ -10,7 +10,9 @@ consumers:
 routes:
   - id: "1"
     name: "Ollama-Compatible-Gateway"
-    uri: "/v1/*"
+    uris: 
+      - "/v1/chat/completions"
+      - "/v1/completions"
     plugins:
       key-auth: 
         header: "Authorization" # Standard OpenAI compatibility
@@ -49,5 +51,16 @@ routes:
         limit_strategy: "total_tokens"
         rejected_code: 429
         rejected_msg: "{\"error\": \"Model quota exceeded. Check model-specific limits in documentation.\"}"
-
+  - id: "2"
+    name: "OpenAI-Models-List"
+    uris: 
+      - "/v1/models"
+      - "/models"
+    plugins:
+      key-auth:
+        header: "Authorization"
+      mocking:
+        content_type: "application/json"
+        response_status: 200
+        response_example: '{"object":"list","data":[{"id":"gemma4:e4b","object":"model","created":1677610602,"owned_by":"system"},{"id":"gemma4:26b-a4b-it-q4_K_M","object":"model","created":1677610602,"owned_by":"system"}]}'
 #END
