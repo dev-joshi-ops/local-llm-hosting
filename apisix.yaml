@@ -1,8 +1,4 @@
 consumers:
-  - username: "dev-user"
-    plugins:
-      key-auth:
-        key: "${{CONSUMER_API_KEY}}"
   - username: "dev-user-bearer"
     plugins:
       key-auth:
