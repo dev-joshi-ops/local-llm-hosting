@@ -22,12 +22,13 @@ This repository provides a professional setup for hosting and managing Local Lar
 The goal of this project is to create a robust infrastructure for local AI deployments. By using Apache APISIX as a proxy for Ollama, you gain enterprise-grade features such as:
 
 - **Security**: Authentication and authorization layers.
-- **Traffic Management**: Model-aware rate limiting and request throttling.
+- **Traffic Management**: Model-aware rate limiting (10M tokens/hr) and 5-minute response timeouts.
+- **Performance**: High-speed inference using NVIDIA GPU acceleration.
 - **Observability**: Metrics, logging, and tracing for AI requests.
 - **Scalability**: Seamlessly routing to multiple Ollama instances.
 
 > [!NOTE]
-> This project uses **APISIX Standalone Mode** and containerized **Ollama**. The entire stack is managed via Docker Compose following Infrastructure-as-Code (IaC) principles.
+> This project uses **APISIX 3.16.0** (Standalone Mode) and **Ollama 0.21.0**. The entire stack is managed via Docker Compose following Infrastructure-as-Code (IaC) principles.
 
 ## Getting Started
 
@@ -72,29 +73,33 @@ For security and persistence, sensitive keys and model paths are managed via env
 ## Declarative Configuration (IaC)
 
 ### Model-Wise Rate Limiting
-This project implements model-specific token quotas using the `ai-proxy-multi` and `ai-rate-limiting` plugins. This ensures that different models have appropriate limits based on their complexity.
+This project implements high-capacity token quotas (10M tokens) using the `ai-proxy-multi` and `ai-rate-limiting` plugins. This ensures that different models have appropriate limits based on their complexity.
 
 ```yaml
 routes:
-  - plugins:
+  - uri: "/v1/*"
+    plugins:
       ai-proxy-multi:
+        timeout: 300000          # 5-minute timeout for reasoning models
         instances:
-          - name: "gemma-e4b"
+          - name: "gemma4:e4b"
+            weight: 1
             override:
               model: "gemma4:e4b"
-          - name: "gemma-26b"
+          - name: "gemma4:26b-a4b-it-q4_K_M"
+            weight: 1
             override:
               model: "gemma4:26b-a4b-it-q4_K_M"
       ai-rate-limiting:
         instances:
-          - name: "gemma-e4b"
-            limit: 10000
-          - name: "gemma-26b"
-            limit: 5000
+          - name: "gemma4:e4b"
+            limit: 10000000      # 10M tokens/hr
+          - name: "gemma4:26b-a4b-it-q4_K_M"
+            limit: 10000000
 ```
 
 ## Advanced: Implementing a Premium Tier
-To grant a specific user higher limits (overriding the defaults above), add the `ai-rate-limiting` plugin directly to their **Consumer** profile in `apisix.yaml` using the matching instance names from your proxy configuration:
+To grant a specific user higher limits (overriding the defaults above), add the `ai-rate-limiting` plugin directly to their **Consumer** profile in `apisix.yaml` using the matching instance names:
 
 ```yaml
 consumers:
@@ -102,10 +107,10 @@ consumers:
     plugins:
       ai-rate-limiting:
         instances:
-          - name: "gemma-e4b"
-            limit: 50000        # Much higher limit for high-value users
-          - name: "gemma-26b"
-            limit: 20000
+          - name: "gemma4:e4b"
+            limit: 50000000      # 50M tokens for premium tiers
+          - name: "gemma4:26b-a4b-it-q4_K_M"
+            limit: 20000000
 ```
 
 ## Connecting with VSCode "Continue" Extension
@@ -120,11 +125,26 @@ models:
   - name: Gemma 4 26B (Reasoning)
     provider: openai
     model: gemma4:26b-a4b-it-q4_K_M
+    apiKey: "<CONSUMER_API_KEY>"
     apiBase: http://<SERVER_IP>:9080/v1/
-    requestOptions:
-      headers:
-        apikey: "<CONSUMER_API_KEY>"
-```
+
+## Connecting with Open WebUI (External)
+
+If you are running Open WebUI (e.g., via their standalone Docker image or hosted), follow these steps to connect:
+
+1.  **Open Settings** in Open WebUI.
+2.  **Navigate to Connections** > **OpenAI API**.
+3.  **Configure the following:**
+    *   **OpenAI Base URL**: `http://<YOUR_SERVER_IP>:9080/v1`
+    *   **OpenAI API Key**: `${CONSUMER_API_KEY}` (The value defined in your `.env`)
+4.  **Important Note on Authentication**: 
+    The gateway is configured to expect the key directly in the `Authorization` header. If your client sends `Bearer <key>`, ensure you have configured APISIX to handle the prefix or simply provide the key in the field.
+
+### Why use the Gateway instead of direct Ollama?
+Connecting through the gateway (`port 9080`) instead of direct Ollama (`port 11434`) gives you:
+- **Token Rate Limiting**: Prevents any single user/session from exhausting your GPU.
+- **Audit Logs**: See all requests passing through APISIX in the Docker logs.
+- **Unified Endpoint**: Manage multiple models through a single API base.
 
 ---
 *Created for secure and manageable local AI development.*

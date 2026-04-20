@@ -1,28 +1,33 @@
 consumers:
-  - username: "dev-user"
+  - username: "dev-user-bearer"
     plugins:
       key-auth:
-        key: "${{CONSUMER_API_KEY}}"
+        key: "Bearer ${{CONSUMER_API_KEY}}"
 routes:
   - id: "1"
     name: "Ollama-Compatible-Gateway"
-    uri: "/v1/chat/completions"
+    uris: 
+      - "/v1/chat/completions"
+      - "/v1/completions"
     plugins:
       key-auth: 
-        header: "apikey"
+        header: "Authorization" # Standard OpenAI compatibility
       ai-proxy-multi:
+        timeout: 300000
         allow_client_model_preference: true
         instances:
-          - name: "gemma-e4b"
+          - name: "gemma4:e4b"
             provider: "openai-compatible"
+            weight: 1
             auth:
               header:
                 Authorization: "Bearer ${{INTERNAL_OLLAMA_TOKEN}}"
             override:
               endpoint: "${{OLLAMA_ENDPOINT}}"
               model: "gemma4:e4b"
-          - name: "gemma-26b"
+          - name: "gemma4:26b-a4b-it-q4_K_M"
             provider: "openai-compatible"
+            weight: 1
             auth:
               header:
                 Authorization: "Bearer ${{INTERNAL_OLLAMA_TOKEN}}"
@@ -33,14 +38,25 @@ routes:
         path: "/dev/stdout"
       ai-rate-limiting:
         instances:
-          - name: "gemma-e4b"
-            limit: 10000
+          - name: "gemma4:e4b"
+            limit: 10000000
             time_window: 3600
-          - name: "gemma-26b"
-            limit: 5000
+          - name: "gemma4:26b-a4b-it-q4_K_M"
+            limit: 10000000
             time_window: 3600
         limit_strategy: "total_tokens"
         rejected_code: 429
         rejected_msg: "{\"error\": \"Model quota exceeded. Check model-specific limits in documentation.\"}"
-
+  - id: "2"
+    name: "OpenAI-Models-List"
+    uris: 
+      - "/v1/models"
+      - "/models"
+    plugins:
+      key-auth:
+        header: "Authorization"
+      mocking:
+        content_type: "application/json"
+        response_status: 200
+        response_example: '{"object":"list","data":[{"id":"gemma4:e4b","object":"model","created":1677610602,"owned_by":"system"},{"id":"gemma4:26b-a4b-it-q4_K_M","object":"model","created":1677610602,"owned_by":"system"}]}'
 #END
