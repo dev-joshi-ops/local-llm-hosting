@@ -18,9 +18,13 @@ routes:
           - |
             return function(conf, ctx)
                 local core = require("apisix.core")
-                local body, err = core.request.get_json()
-                if body and body.model then
-                    ctx.picked_ai_instance_name = body.model
+                ngx.req.read_body()
+                local body_str = ngx.req.get_body_data()
+                if body_str then
+                    local ok, body = pcall(core.json.decode, body_str)
+                    if ok and body and body.model then
+                        ctx.picked_ai_instance_name = body.model
+                    end
                 end
             end
       ai-proxy:
