@@ -122,9 +122,12 @@ You can extend APISIX with custom Lua plugins by placing them in the `plugins/` 
    mkdir plugins
    ```
 2. **Add your plugin**: Place your custom `.lua` plugin file (e.g., `my-plugin.lua`) inside the `plugins/` folder.
-3. **Configure APISIX**: Update `config.yaml` to include your plugin in the `plugins` list and `apisix.yaml` to apply it to routes.
+3. **Configure APISIX**: 
+   - Add your plugin to the `plugins` list in `config.yaml`.
+   - Apply it to routes in `apisix.yaml`.
 
-The `plugins/` directory is mounted to `/usr/local/apisix/apisix/plugins` in the container, allowing you to add custom logic without rebuilding the image.
+> [!IMPORTANT]
+> The `plugins/` directory is mounted to `/opt/apisix-custom-plugins` in the container. Custom plugins are automatically discovered via the `extra_lua_path` setting in `config.yaml`.
 
 ## Connecting with VSCode "Continue" Extension
 
