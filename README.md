@@ -113,6 +113,19 @@ consumers:
             limit: 20000000
 ```
 
+## Adding Custom Plugins
+
+You can extend APISIX with custom Lua plugins by placing them in the `plugins/` directory.
+
+1. **Create the plugins directory**:
+   ```bash
+   mkdir plugins
+   ```
+2. **Add your plugin**: Place your custom `.lua` plugin file (e.g., `my-plugin.lua`) inside the `plugins/` folder.
+3. **Configure APISIX**: Update `config.yaml` to include your plugin in the `plugins` list and `apisix.yaml` to apply it to routes.
+
+The `plugins/` directory is mounted to `/usr/local/apisix/apisix/plugins` in the container, allowing you to add custom logic without rebuilding the image.
+
 ## Connecting with VSCode "Continue" Extension
 
 Modify your `config.json` in VSCode:
@@ -127,6 +140,7 @@ models:
     model: gemma4:26b-a4b-it-q4_K_M
     apiKey: "<CONSUMER_API_KEY>"
     apiBase: http://<SERVER_IP>:9080/v1/
+```
 
 ## Connecting with Open WebUI (External)
 
