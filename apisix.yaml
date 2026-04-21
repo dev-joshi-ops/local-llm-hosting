@@ -10,30 +10,16 @@ routes:
       - "/v1/chat/completions"
       - "/v1/completions"
     plugins:
-      key-auth: 
+      key-auth:
         header: "Authorization" # Standard OpenAI compatibility
-      ai-proxy-multi:
+      ai-proxy:
+        provider: "openai-compatible"
         timeout: 300000
-        allow_client_model_preference: true
-        instances:
-          - name: "gemma4:e4b"
-            provider: "openai-compatible"
-            model: "gemma4:e4b"
-            weight: 1
-            auth:
-              header:
-                Authorization: "Bearer ${{INTERNAL_OLLAMA_TOKEN}}"
-            override:
-              endpoint: "${{OLLAMA_ENDPOINT}}"
-          - name: "gemma4:26b-a4b-it-q4_K_M"
-            provider: "openai-compatible"
-            model: "gemma4:26b-a4b-it-q4_K_M"
-            weight: 0
-            auth:
-              header:
-                Authorization: "Bearer ${{INTERNAL_OLLAMA_TOKEN}}"
-            override:
-              endpoint: "${{OLLAMA_ENDPOINT}}"
+        auth:
+          header:
+            Authorization: "Bearer ${{INTERNAL_OLLAMA_TOKEN}}"
+        override:
+          endpoint: "${{OLLAMA_ENDPOINT}}"
       file-logger:
         path: "/dev/stdout"
       ai-rate-limiting:
