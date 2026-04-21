@@ -11,7 +11,7 @@ services:
     volumes:
       - ./config.yaml:/usr/local/apisix/conf/config.yaml:ro
       - ./apisix.yaml:/usr/local/apisix/conf/apisix.yaml:ro
-      - ./plugins:/usr/local/apisix/apisix/plugins:ro
+      - ./plugins:/opt/apisix-custom-plugins:ro
     ports:
       - "9080:9080"
     restart: always

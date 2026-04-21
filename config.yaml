@@ -1,3 +1,6 @@
+apisix:
+  extra_lua_path: "/opt/apisix-custom-plugins/?.lua"
+
 deployment:
   role: data_plane
   role_data_plane:
