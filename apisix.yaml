@@ -12,9 +12,22 @@ routes:
     plugins:
       key-auth:
         header: "Authorization" # Standard OpenAI compatibility
+      serverless-pre-function:
+        phase: rewrite
+        functions:
+          - |
+            return function(conf, ctx)
+                local core = require("apisix.core")
+                local body, err = core.request.get_json()
+                if body and body.model then
+                    ctx.picked_ai_instance_name = body.model
+                end
+            end
       ai-proxy:
         provider: "openai-compatible"
         timeout: 300000
+        logging:
+          summaries: true
         auth:
           header:
             Authorization: "Bearer ${{INTERNAL_OLLAMA_TOKEN}}"
