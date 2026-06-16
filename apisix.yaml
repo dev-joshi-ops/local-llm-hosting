@@ -6,34 +6,37 @@ consumers:
 routes:
   - id: "1"
     name: "Ollama-Compatible-Gateway"
-    uris: 
+    uris:
       - "/v1/chat/completions"
       - "/v1/completions"
     plugins:
-      key-auth: 
+      key-auth:
         header: "Authorization" # Standard OpenAI compatibility
-      ai-proxy-multi:
+      serverless-pre-function:
+        phase: rewrite
+        functions:
+          - |
+            return function(conf, ctx)
+                local core = require("apisix.core")
+                ngx.req.read_body()
+                local body_str = ngx.req.get_body_data()
+                if body_str then
+                    local ok, body = pcall(core.json.decode, body_str)
+                    if ok and body and body.model then
+                        ctx.picked_ai_instance_name = body.model
+                    end
+                end
+            end
+      ai-proxy:
+        provider: "openai-compatible"
         timeout: 300000
-        allow_client_model_preference: true
-        instances:
-          - name: "gemma4:e4b"
-            provider: "openai-compatible"
-            weight: 1
-            auth:
-              header:
-                Authorization: "Bearer ${{INTERNAL_OLLAMA_TOKEN}}"
-            override:
-              endpoint: "${{OLLAMA_ENDPOINT}}"
-              model: "gemma4:e4b"
-          - name: "gemma4:26b-a4b-it-q4_K_M"
-            provider: "openai-compatible"
-            weight: 1
-            auth:
-              header:
-                Authorization: "Bearer ${{INTERNAL_OLLAMA_TOKEN}}"
-            override:
-              endpoint: "${{OLLAMA_ENDPOINT}}"
-              model: "gemma4:26b-a4b-it-q4_K_M"
+        logging:
+          summaries: true
+        auth:
+          header:
+            Authorization: "Bearer ${{INTERNAL_OLLAMA_TOKEN}}"
+        override:
+          endpoint: "${{OLLAMA_ENDPOINT}}"
       file-logger:
         path: "/dev/stdout"
       ai-rate-limiting:
@@ -49,7 +52,7 @@ routes:
         rejected_msg: "{\"error\": \"Model quota exceeded. Check model-specific limits in documentation.\"}"
   - id: "2"
     name: "OpenAI-Models-List"
-    uris: 
+    uris:
       - "/v1/models"
       - "/models"
     plugins:

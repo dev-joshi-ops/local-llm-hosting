@@ -73,23 +73,34 @@ For security and persistence, sensitive keys and model paths are managed via env
 ## Declarative Configuration (IaC)
 
 ### Model-Wise Rate Limiting
-This project implements high-capacity token quotas (10M tokens) using the `ai-proxy-multi` and `ai-rate-limiting` plugins. This ensures that different models have appropriate limits based on their complexity.
+This project implements high-capacity token quotas (10M tokens/hr) using the `ai-proxy` and `ai-rate-limiting` plugins. The gateway reads the requested `model` from the JSON body and uses it as the APISIX AI instance name for model-specific quotas.
 
 ```yaml
 routes:
-  - uri: "/v1/*"
+  - uris:
+      - "/v1/chat/completions"
+      - "/v1/completions"
     plugins:
-      ai-proxy-multi:
+      serverless-pre-function:
+        phase: rewrite
+        functions:
+          - |
+            return function(conf, ctx)
+                local core = require("apisix.core")
+                ngx.req.read_body()
+                local body_str = ngx.req.get_body_data()
+                if body_str then
+                    local ok, body = pcall(core.json.decode, body_str)
+                    if ok and body and body.model then
+                        ctx.picked_ai_instance_name = body.model
+                    end
+                end
+            end
+      ai-proxy:
+        provider: "openai-compatible"
         timeout: 300000          # 5-minute timeout for reasoning models
-        instances:
-          - name: "gemma4:e4b"
-            weight: 1
-            override:
-              model: "gemma4:e4b"
-          - name: "gemma4:26b-a4b-it-q4_K_M"
-            weight: 1
-            override:
-              model: "gemma4:26b-a4b-it-q4_K_M"
+        override:
+          endpoint: "${{OLLAMA_ENDPOINT}}"
       ai-rate-limiting:
         instances:
           - name: "gemma4:e4b"
@@ -98,8 +109,12 @@ routes:
             limit: 10000000
 ```
 
+### Models List Endpoint
+
+The gateway also exposes `/v1/models` and `/models` through APISIX's `mocking` plugin so OpenAI-compatible clients can discover the local models without calling Ollama directly.
+
 ## Advanced: Implementing a Premium Tier
-To grant a specific user higher limits (overriding the defaults above), add the `ai-rate-limiting` plugin directly to their **Consumer** profile in `apisix.yaml` using the matching instance names:
+To grant a specific user higher limits, add the `ai-rate-limiting` plugin directly to their **Consumer** profile in `apisix.yaml` using the same instance names as the request `model` values:
 
 ```yaml
 consumers:
@@ -112,6 +127,24 @@ consumers:
           - name: "gemma4:26b-a4b-it-q4_K_M"
             limit: 20000000
 ```
+
+## Adding Custom Plugins
+
+You can extend APISIX with custom Lua plugins from the local `plugins/` directory. Docker Compose mounts this directory into the APISIX container at `/opt/apisix-custom-plugins`, and `config.yaml` adds that mount to APISIX's Lua search path.
+
+1. **Add your plugin file** under the APISIX module path:
+   ```text
+   plugins/
+     apisix/
+       plugins/
+         my-plugin.lua
+   ```
+2. **Configure APISIX**:
+   - Add your plugin to the `plugins` list in `config.yaml`.
+   - Apply it to routes in `apisix.yaml`.
+
+> [!IMPORTANT]
+> Defining a `plugins:` list in `config.yaml` replaces APISIX's default enabled plugin list. Include the built-in plugins this gateway already uses, such as `key-auth`, `serverless-pre-function`, `ai-proxy`, `ai-rate-limiting`, `file-logger`, and `mocking`, along with your custom plugin.
 
 ## Connecting with VSCode "Continue" Extension
 
@@ -127,6 +160,7 @@ models:
     model: gemma4:26b-a4b-it-q4_K_M
     apiKey: "<CONSUMER_API_KEY>"
     apiBase: http://<SERVER_IP>:9080/v1/
+```
 
 ## Connecting with Open WebUI (External)
 
@@ -137,8 +171,8 @@ If you are running Open WebUI (e.g., via their standalone Docker image or hosted
 3.  **Configure the following:**
     *   **OpenAI Base URL**: `http://<YOUR_SERVER_IP>:9080/v1`
     *   **OpenAI API Key**: `${CONSUMER_API_KEY}` (The value defined in your `.env`)
-4.  **Important Note on Authentication**: 
-    The gateway is configured to expect the key directly in the `Authorization` header. If your client sends `Bearer <key>`, ensure you have configured APISIX to handle the prefix or simply provide the key in the field.
+4.  **Important Note on Authentication**:
+    The gateway is configured for OpenAI-compatible clients that send `Authorization: Bearer <CONSUMER_API_KEY>`. In Open WebUI, enter the raw `CONSUMER_API_KEY`; Open WebUI will send it with the `Bearer` prefix.
 
 ### Why use the Gateway instead of direct Ollama?
 Connecting through the gateway (`port 9080`) instead of direct Ollama (`port 11434`) gives you:
