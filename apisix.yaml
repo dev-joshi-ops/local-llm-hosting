@@ -6,7 +6,7 @@ consumers:
 routes:
   - id: "1"
     name: "Ollama-Compatible-Gateway"
-    uris: 
+    uris:
       - "/v1/chat/completions"
       - "/v1/completions"
     plugins:
@@ -52,7 +52,7 @@ routes:
         rejected_msg: "{\"error\": \"Model quota exceeded. Check model-specific limits in documentation.\"}"
   - id: "2"
     name: "OpenAI-Models-List"
-    uris: 
+    uris:
       - "/v1/models"
       - "/models"
     plugins:
